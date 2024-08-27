@@ -23,8 +23,13 @@ router.post("/login", login(), async (req, res, next) => {
       `
       SELECT 
         accountId,
-        password
-      FROM credentials
+        C.password,
+        C.accountType,
+        CS.firstName,
+        CS.middleName,
+        CS.lastName
+      FROM credentials C
+      LEFT JOIN citizen_signup CS USING(accountID)
       WHERE username = ?
     `,
       username
@@ -44,15 +49,15 @@ router.post("/login", login(), async (req, res, next) => {
       });
     }
 
-    const payload = {
-      accountId: result[0].accountId,
-    };
+    // const payload = {
+    //   accountId: result[0].accountId
+    // };
 
-    const token = jwt.sign(payload, encryptedPrivateKey, {
+    const token = jwt.sign(result[0].accountId, encryptedPrivateKey, {
       algorithm: "RS256",
     });
 
-    return res.status(200).json({ token: token });
+    return res.status(200).json({ token, result });
   } catch (err) {
     console.log(err);
     next(err);
@@ -61,7 +66,7 @@ router.post("/login", login(), async (req, res, next) => {
 
 router.post("/signUp", signUp(), async (req, res, next) => {
   const date = moment().tz("Asia/Manila").format("YYYY-MM-DD HH:mm:ss");
-  const { accountid, username, password, ...val } = req.body;
+  const { accountid, username, password, accountType, ...val } = req.body;
 
   let transaction;
   try {
@@ -113,6 +118,7 @@ router.post("/signUp", signUp(), async (req, res, next) => {
       {
         accountId,
         username,
+        accountType,
         password: hashPassword,
         dateCreated: date,
         dateUpdated: date,

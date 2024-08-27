@@ -16,12 +16,13 @@ export const signUp = () => {
     body([
       "firstName",
       "lastName",
-      "region",
-      "province",
-      "city",
-      "brgy",
+      "regionId",
+      "provinceId",
+      "cityId",
+      "brgyId",
       "username",
       "password",
+      "accountType",
     ])
       // body(["firstName", "lastName", "username", "password"])
       .notEmpty()
