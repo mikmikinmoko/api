@@ -49,15 +49,15 @@ router.post("/login", login(), async (req, res, next) => {
       });
     }
 
-    // const payload = {
-    //   accountId: result[0].accountId
-    // };
+    const payload = {
+      accountId: result[0].accountId,
+    };
 
-    const token = jwt.sign(result[0].accountId, encryptedPrivateKey, {
+    const token = jwt.sign(payload, encryptedPrivateKey, {
       algorithm: "RS256",
     });
 
-    return res.status(200).json({ token, result });
+    return res.status(200).json({ token, ...result[0] });
   } catch (err) {
     console.log(err);
     next(err);
