@@ -1,7 +1,9 @@
 export const checkPermission = (module, permissionType) => {
   return async (req, res, next) => {
+    console.log(req.currentUser);
     const hasPermission =
       req.currentUser.permissions.filter((o) => {
+        console.log(o.module);
         if (o.module == module.module && o.submodule == module.submodule) {
           return o.permissions.split(";").includes(permissionType);
         }

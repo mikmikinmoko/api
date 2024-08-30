@@ -4,11 +4,11 @@ import { createId } from "@paralleldrive/cuid2";
 
 import hash from "#helpers/hash";
 import { checkPermission } from "#helpers/permissions";
-import { register } from "#validations/admin/membership.validation";
+import { register, editMember } from "#validations/admin/membership.validation";
 
 const router = express.Router();
 
-const MODULE = {
+const module = {
   module: "ADMIN",
   submodule: "USERS",
 };
@@ -106,38 +106,85 @@ router.post(
 );
 
 router.post(
-  "/editUser/:accountId",
-  // checkPermission(MODULE, "write"),
-  // editUser(),
+  "/viewProfile/:accountId",
+  // checkPermission(module, "write"),
+  // editMember(),
   async (req, res, next) => {
-    const date = moment().tz("Asia/Manila").format("YYYY-MM-DD HH:mm:ss");
+    // const date = moment().tz("Asia/Manila").format("YYYY-MM-DD HH:mm:ss");
     const { accountId } = req.params;
 
     try {
       let result = await req.db.query(
         `
         SELECT *
-        FROM citizen_signup
+        FROM citizen_registration
         WHERE accountId = ?
       `,
-        accountId
+        [accountId]
+      );
+
+      if (result.length > 0) {
+        res.status(200).json(result[0]);
+      } else {
+        res.status(404).json({ message: "Account not found" });
+      }
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+router.post(
+  "/editMember/:accountId",
+  // checkPermission(module, "write"),
+  editMember(),
+  async (req, res, next) => {
+    const date = moment().tz("Asia/Manila").format("YYYY-MM-DD HH:mm:ss");
+    const { accountId } = req.params;
+    const { username, ...newVal } = req.body;
+    console.log(newVal);
+
+    try {
+      let result = await req.db.query(
+        `
+        SELECT *
+        FROM citizen_registration
+        WHERE accountId = ?
+      `,
+        [accountId]
       );
 
       if (result.length > 0) {
         let update = await req.db.query(
           `
-          UPDATE citizen_signup
+          UPDATE citizen_registration
           SET ?
           WHERE accountId = ?
         `,
           [
             {
-              ...req.body,
+              ...newVal,
               dateUpdated: date,
             },
             accountId,
           ]
         );
+
+        let checkUsername = await req.db.query(
+          `
+        SELECT 
+          username
+        FROM credentials
+        WHERE username = ?
+      `,
+          username
+        );
+
+        if (checkUsername.length > 0) {
+          return res.status(400).json({
+            error: 400,
+            message: "Username already exists",
+          });
+        }
 
         if (update.affectedRows > 0) {
           res.status(200).json({ message: "Updated Successfully" });

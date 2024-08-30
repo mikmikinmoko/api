@@ -24,7 +24,7 @@ export const register = () => {
   ];
 };
 
-export const editUser = () => {
+export const editMember = () => {
   return [
     param("accountId")
       .notEmpty()
@@ -35,11 +35,13 @@ export const editUser = () => {
       "firstName",
       "lastName",
       "birthDate",
+      "mobileNumber",
       "sex",
       "regionId",
       "provinceId",
       "cityId",
       "brgyId",
+      "username",
     ])
       .notEmpty()
       .withMessage("This field is required")
