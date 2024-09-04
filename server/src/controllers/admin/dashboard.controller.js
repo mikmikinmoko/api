@@ -18,15 +18,35 @@ const module = {
 };
 
 router.get(
-  "/getMembers",
+  "/getGenderCount",
   // checkPermission(MODULE, "read"),
   async (req, res, next) => {
     try {
       let result = await req.db.query(`
-        SELECT * FROM citizen_info
-      `);
+      SELECT
+        COUNT(CASE WHEN sex = 0 THEN 0 END) as male,
+        COUNT(CASE WHEN sex = 1 THEN 1 END) as female
+      FROM citizen_info
+    `);
 
-      res.status(200).json(result);
+      res.status(200).json(result[0]);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+router.get(
+  "/getTotalMembers",
+  // checkPermission(MODULE, "read"),
+  async (req, res, next) => {
+    try {
+      let result = await req.db.query(`
+      SELECT
+        COUNT(*) as total
+      FROM citizen_info
+    `);
+
+      res.status(200).json(result[0]);
     } catch (err) {
       next(err);
     }
@@ -34,68 +54,46 @@ router.get(
 );
 
 router.post(
-  "/registration",
+  "/addStallOwner",
   // checkPermission(MODULE, "write"),
-  register(),
+  // register(),
   async (req, res, next) => {
     const date = moment().tz("Asia/Manila").format("YYYY-MM-DD HH:mm:ss");
-    const { username, password, ...newVal } = req.body;
 
     let transaction;
     try {
-      let result = await req.db.query(
-        `
-        SELECT *
-        FROM credentials
-        WHERE username = ?
-      `,
-        username
-      );
+      // let result = await req.db.query(
+      //   `
+      //   SELECT *
+      //   FROM citizen_info
+      //   WHERE accountId = ?
+      // `,
+      //   accountId
+      // );
 
-      if (result.length > 0) {
-        return res.status(400).json({
-          error: 400,
-          message: "Username already exists",
-        });
-      }
-
-      const accountId = createId().toUpperCase();
-      const hashPassword = await hash.hashPassword(password);
+      // if (result.length > 0) {
+      //   return res.status(400).json({
+      //     error: 400,
+      //     message: "Account already exists",
+      //   });
+      // }
 
       transaction = await req.db.beginTransaction();
 
-      let [regiter] = await transaction.query(
+      let [regiterStall] = await transaction.query(
         `
-        INSERT INTO citizen_info
+        INSERT INTO citizen_stall
         SET ?
       `,
         {
-          ...newVal,
-          accountId: accountId,
+          ...req.body,
+          // accountId: accountId,
           dateCreated: date,
           dateUpdated: date,
         }
       );
 
-      if (!regiter.insertId) {
-        throw new Error("An error occurred while inserting data");
-      }
-      let [insertCreds] = await transaction.query(
-        `
-        INSERT INTO credentials
-        SET ?
-      `,
-        {
-          accountId: accountId,
-          username,
-          password: hashPassword,
-          accountType: "MEMBER",
-          dateCreated: date,
-          dateUpdated: date,
-        }
-      );
-
-      if (!insertCreds.insertId) {
+      if (!regiterStall.insertId) {
         throw new Error("An error occurred while inserting data");
       }
 
