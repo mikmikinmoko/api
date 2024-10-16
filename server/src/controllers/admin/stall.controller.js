@@ -26,6 +26,7 @@ router.get(
         SELECT 
           CS.type,
           CS.authorizePerson,
+          CS.rate,
           CS.section,
           CI.firstName,
           CI.middleName,
