@@ -52,22 +52,6 @@ router.post(
 
     let transaction;
     try {
-      // let result = await req.db.query(
-      //   `
-      //   SELECT *
-      //   FROM citizen_info
-      //   WHERE accountId = ?
-      // `,
-      //   accountId
-      // );
-
-      // if (result.length > 0) {
-      //   return res.status(400).json({
-      //     error: 400,
-      //     message: "Account already exists",
-      //   });
-      // }
-
       transaction = await req.db.beginTransaction();
 
       let [regiterStall] = await transaction.query(
@@ -77,7 +61,6 @@ router.post(
       `,
         {
           ...req.body,
-          // accountId: accountId,
           dateCreated: date,
           dateUpdated: date,
         }

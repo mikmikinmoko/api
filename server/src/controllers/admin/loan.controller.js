@@ -4,7 +4,7 @@ import { createId } from "@paralleldrive/cuid2";
 
 import hash from "#helpers/hash";
 import { checkPermission } from "#helpers/permissions";
-import { checkParking } from "#validations/admin/parking.validation";
+import { checkLoan } from "#validations/admin/loan.validation";
 
 const router = express.Router();
 
@@ -14,31 +14,23 @@ const module = {
 };
 
 router.get(
-  "/getParking",
+  "/getLoans",
   // checkPermission(MODULE, "read"),
   async (req, res, next) => {
     try {
       let result = await req.db.query(`
         SELECT 
-          CP.vehicleType,
-          CP.plateNumber,
-          CP.rate,
-          CP.dateStarted,
-          CI.firstName,
-          CI.middleName,
-          CI.lastName,
-          CI.mobileNumber
+           *
         FROM 
-          citizen_parking CP
-        LEFT JOIN citizen_info CI USING(accountId)
+         citizen_loan
       `);
-
       res.status(200).json(result);
     } catch (err) {
       next(err);
     }
   }
 );
+
 router.get(
   "/getApprovedMember",
   // checkPermission(MODULE, "read"),
@@ -68,37 +60,58 @@ router.get(
 );
 
 router.post(
-  "/addParking",
+  "/addLoan",
   // checkPermission(MODULE, "write"),
-  checkParking(),
+  checkLoan(),
   async (req, res, next) => {
     const date = moment().tz("Asia/Manila").format("YYYY-MM-DD HH:mm:ss");
+    const { accountId } = req.body;
 
     let transaction;
     try {
+      const checked = await req.db.query(
+        `
+        SELECT
+          *
+        FROM citizen_loan CL
+        LEFT JOIN citizen_info CI USING(accountId) 
+        WHERE
+          CL.accountId = ? AND
+          CI.status = 1
+        `,
+        [accountId]
+      );
+
+      if (checked.length > 0) {
+        return res
+          .status(409)
+          .send({ message: "You've Already Applied for Loan" });
+      }
+
       transaction = await req.db.beginTransaction();
 
-      let [parking] = await transaction.query(
+      let [loan] = await transaction.query(
         `
-        INSERT INTO citizen_parking
+        INSERT INTO citizen_loan
         SET ?
       `,
         {
           ...req.body,
           dateCreated: date,
           dateUpdated: date,
+          status: 0,
         }
       );
 
-      if (!parking.insertId) {
+      if (!loan.insertId) {
         throw new Error("An error occurred while inserting data");
       }
 
       await req.db.commit(transaction);
 
-      res.status(200).json({ message: "Added successfully" });
+      res.status(201).json({ message: "Loan application added successfull" });
     } catch (err) {
-      await req.db.rollback(transaction);
+      if (transaction) await req.db.rollback(transaction);
       next(err);
     }
   }

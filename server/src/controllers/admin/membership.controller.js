@@ -150,8 +150,6 @@ router.post(
   async (req, res, next) => {
     const date = moment().tz("Asia/Manila").format("YYYY-MM-DD HH:mm:ss");
     const { accountId } = req.params;
-    const values = req.body;
-    console.log(values);
 
     try {
       let result = await req.db.query(
@@ -254,7 +252,6 @@ router.post(
     const date = moment().tz("Asia/Manila").format("YYYY-MM-DD HH:mm:ss");
     const { accountId } = req.params;
     const { username, ...newVal } = req.body;
-    console.log(newVal);
 
     try {
       let result = await req.db.query(
