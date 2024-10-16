@@ -31,33 +31,33 @@ router.get(
   }
 );
 
-router.get(
-  "/getApprovedMember",
-  // checkPermission(MODULE, "read"),
-  async (req, res, next) => {
-    try {
-      let result = await req.db.query(`
-        SELECT 
-          id,
-          accountId,
-          CONCAT(
-          firstName,
-          CASE WHEN middleName IS NOT NULL THEN
-            CONCAT(" ", middleName)
-            ELSE ""
-          END, " ", lastName
-          ) AS fullName
-        FROM 
-          citizen_info
-        WHERE status = 1
-      `);
+// router.get(
+//   "/getApprovedMember",
+//   // checkPermission(MODULE, "read"),
+//   async (req, res, next) => {
+//     try {
+//       let result = await req.db.query(`
+//         SELECT
+//           id,
+//           accountId,
+//           CONCAT(
+//           firstName,
+//           CASE WHEN middleName IS NOT NULL THEN
+//             CONCAT(" ", middleName)
+//             ELSE ""
+//           END, " ", lastName
+//           ) AS fullName
+//         FROM
+//           citizen_info
+//         WHERE status = 1
+//       `);
 
-      res.status(200).json(result);
-    } catch (err) {
-      next(err);
-    }
-  }
-);
+//       res.status(200).json(result);
+//     } catch (err) {
+//       next(err);
+//     }
+//   }
+// );
 
 router.post(
   "/addLoan",
