@@ -20,10 +20,49 @@ router.get(
     try {
       let result = await req.db.query(`
         SELECT 
-           *
+          CL.accountId,
+          CL.loanId,
+          CL.amount,
+          CL.term,
+          CL.status as loanStatus,
+          CL.dateAccepted as loanAprroved,
+          CI.firstName,
+          CI.middleName,
+          CI.lastName
         FROM 
-         citizen_loan
+         citizen_loan CL
+        LEFT JOIN citizen_info CI USING(accountId)
       `);
+      res.status(200).json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.get(
+  "/getLoan/:accountId",
+  // checkPermission(MODULE, "read"),
+  async (req, res, next) => {
+    const { accountId } = req.params;
+    try {
+      let result = await req.db.query(
+        `
+        SELECT 
+          CL.*
+          CI.firstName,
+          CI.middleName,
+          CI.lastName,
+          CS.section as stallNo
+        FROM 
+         citizen_loan CL
+        LEFT JOIN citizen_info CI USING(accountId)
+        LEFT JOIN citizen_stall CS USING(accountId)
+        WHERE
+          CL.accountId = ?
+      `,
+        [accountId]
+      );
       res.status(200).json(result);
     } catch (err) {
       next(err);
@@ -39,11 +78,9 @@ router.get(
       let result = await req.db.query(`
         SELECT
           DISTINCT CI.accountId,
-          CONCAT(CI.firstName,
-                CASE
-                  WHEN CI.middleName IS NOT NULL AND CI.middleName != '' THEN CONCAT(' ', CI.middleName)
-                  ELSE ''
-                END," ", CI.lastName) as fullName,
+          CI.firstName,
+          CI.middleName as middleName,
+          CI.lastName,
           COALESCE(CS.section) as section
         FROM citizen_info CI
         LEFT JOIN citizen_stall CS USING(accountId)
@@ -81,11 +118,12 @@ router.post(
       );
 
       if (checked.length > 0) {
-        return res
-          .status(409)
-          .send({ message: "You've Already Applied for Loan" });
+        return res.status(409).send({
+          message: "You've Already Applied for Loan, Please settle your loan",
+        });
       }
 
+      const loanId = createId().toUpperCase();
       transaction = await req.db.beginTransaction();
 
       let [loan] = await transaction.query(
@@ -95,6 +133,8 @@ router.post(
       `,
         {
           ...req.body,
+          loanId: loanId,
+          dateAccepted: date,
           dateCreated: date,
           dateUpdated: date,
           status: 0,

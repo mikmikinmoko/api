@@ -3,7 +3,7 @@ import validate from "#middlewares/validate";
 
 export const checkLoan = () => {
   return [
-    body(["accountId", "nameOfApplicant", "stallNo", "amount", "term"])
+    body(["accountId", "stallNo", "amount", "term"])
       .notEmpty()
       .withMessage("This field is required")
       .trim()
