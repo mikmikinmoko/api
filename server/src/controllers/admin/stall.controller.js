@@ -1,7 +1,6 @@
 import express from "express";
 import moment from "moment-timezone";
-import { createId } from "@paralleldrive/cuid2";
-
+import { init } from "@paralleldrive/cuid2";
 import hash from "#helpers/hash";
 import { checkPermission } from "#helpers/permissions";
 import {
@@ -9,6 +8,7 @@ import {
   editMember,
   acceptMember,
 } from "#validations/admin/membership.validation";
+import { typeCheck } from "#validations/admin/stall.validation";
 
 const router = express.Router();
 
@@ -33,7 +33,9 @@ router.get(
           CI.lastName
         FROM 
           citizen_stall CS
-        LEFT JOIN citizen_info CI USING(accountId)
+        LEFT JOIN 
+          citizen_info CI USING(accountId)
+        ORDER BY CS.dateCreated DESC
       `);
 
       res.status(200).json(result);
@@ -49,7 +51,7 @@ router.post(
   // register(),
   async (req, res, next) => {
     const date = moment().tz("Asia/Manila").format("YYYY-MM-DD HH:mm:ss");
-
+    console.log(req.body);
     let transaction;
     try {
       transaction = await req.db.beginTransaction();
@@ -285,6 +287,88 @@ router.post(
         });
       }
     } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.get("/getStallTypes", async (req, res, next) => {
+  try {
+    let result = await req.db.query(`
+      SELECT 
+          *
+      FROM 
+        stall_type
+      ORDER BY
+        dateCreated DESC
+    `);
+
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post(
+  "/addStallType",
+  // checkPermission(MODULE, "write"),
+  typeCheck(),
+  async (req, res, next) => {
+    const date = moment().tz("Asia/Manila").format("YYYY-MM-DD HH:mm:ss");
+
+    let transaction;
+
+    try {
+      const typeCheck = await req.db.query(
+        `
+        SELECT
+          *
+        FROM stall_type
+        WHERE 
+          typeName = ? AND 
+          isDeleted = 0
+        `,
+        [req.body.typeName]
+      );
+
+      if (typeCheck.length > 0) {
+        return res.status(409).send({
+          message: "Duplicate Stall",
+        });
+      }
+
+      let createId = init({
+        random: Math.random,
+        length: 7,
+        fingerprint: "typeId",
+      });
+
+      let stId = createId().toUpperCase();
+
+      transaction = await req.db.beginTransaction();
+
+      let [type] = await transaction.query(
+        `
+          INSERT INTO stall_type
+          SET ?
+        `,
+        {
+          ...req.body,
+          typeId: stId,
+          isDeleted: 0,
+          dateCreated: date,
+          dateUpdated: date,
+        }
+      );
+
+      if (!type.insertId) {
+        throw new Error("An error occurred while inserting data");
+      }
+
+      await req.db.commit(transaction);
+      res.status(200).json({ message: "Added successfully" });
+    } catch (err) {
+      await req.db.rollback(transaction);
       next(err);
     }
   }

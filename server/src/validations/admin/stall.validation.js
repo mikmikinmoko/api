@@ -65,3 +65,14 @@ export const acceptMember = () => {
     (req, res, next) => validate(req, res, next),
   ];
 };
+
+export const typeCheck = () => {
+  return [
+    body(["typeName"])
+      .notEmpty()
+      .withMessage("This field is required")
+      .trim()
+      .escape(),
+    (req, res, next) => validate(req, res, next),
+  ];
+};
